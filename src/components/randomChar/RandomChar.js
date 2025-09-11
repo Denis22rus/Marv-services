@@ -1,4 +1,6 @@
 import {Component} from 'react';
+import Spinner from '../spinner/Spinner';
+import ErrorMessage from '../errorMessage/ErrorMessage';
 import MarvelService from '../../services/MarvelService';
 
 import './randomChar.scss';
@@ -12,10 +14,12 @@ class RandomChar extends Component {
   }
   // state - объект, который хранит данные компонента
   state = {
-    char: {},
+    char: {}, // объект с данными персонажа
+    loading: true, // изначально true, чтобы показать спиннер при загрузке
+    error: false // изначально false, чтобы не показывать ошибку при загрузке
     // в итоге получается, что char: {} становится char: {name: '...', description: '...', thumbnail: '...', homepage: '...', wiki: '...'}
 
-    // // изначально будет null, чтобы не было ошибки при рендере и не пытался отобразить несуществующие данные
+    // изначально будет null, чтобы не было ошибки при рендере и не пытался отобразить несуществующие данные
     // name: null,
     // description: null, // описание персонажа
     // thumbnail: null, // картинка персонажа
@@ -24,19 +28,30 @@ class RandomChar extends Component {
   }
 
   // новое свойство класса RandomChar
-  // почему просто marvelService, а не this.marvelService или class?
-  // потому что это не метод класса, а свойство класса и его не нужно вызывать через this, чтобы получить доступ к нему
+  // Это не метод класса, а свойство класса и его не нужно вызывать через this, чтобы получить доступ к нему
   marvelService = new MarvelService(); // создаем экземпляр класса MarvelService
   // он нужен, чтобы обращаться к методам класса MarvelService и получать данные с API
 
-  // в char приходит объект с данными персонажа
+
+  // функция, которая обновляет state компонента
   onCharLoaded = (char) => { // метод класса, который обновляет state компонента
-    this.setState({char}) // обновляем state компонента RandomChar
+    this.setState({char, loading: false}) // обновляем state компонента RandomChar
+    // * Как только загружаются данные, позиция loading меняется на false и спиннер исчезает
+    // в char приходит объект с данными персонажа
     // this.setState - метод, который обновляет state компонента и вызывает перерисовку компонента
     // {char} - сокращенная запись {char: char}, где первый char - имя свойства, а второй char - значение свойства (параметр функции)
     // аргумент подставляется в значение свойства
   }
 
+  // функция, которая обновляет state при ошибке
+  onError = () => {
+    this.setState({
+      loading: false, // если произошла ошибка, значит у нас нет загрузки
+      error: true
+    })
+  }
+
+  // функция для получения случайного персонажа
   updateChar = () => {
     const id = Math.floor(Math.random() * (20 - 1) + 1);
     this.marvelService
@@ -44,11 +59,17 @@ class RandomChar extends Component {
       .then(this.onCharLoaded) // когда промис выполнится, вызываем метод onCharLoaded и передаем в него данные персонажа
       // пример данных: {name: '...', description: '...', thumbnail: '...', homepage: '...', wiki: '...'}
       // в this аргумент автоматически подставляется результат выполнения промиса (данные персонажа)
+      .catch(this.onError) // если промис не выполнится, вызываем метод onError
   }
 
   render() {
-    const {char: {name, description, thumbnail, homepage, wiki}} = this.state; // деструктуризация объекта state
-    console.log(this.state.char);
+    const {char, loading, error} = this.state; // деструктуризация объекта state
+    // * присвоение в деструктуризации происходит по совпадающим именам свойств объекта, порядок не важен
+
+    const errorMessage = error ? <ErrorMessage/> : null; // если error true, то показываем компонент ErrorMessage, иначе null
+    const spinner = loading ? <Spinner/> : null; // если loading true, то показываем компонент Spinner, иначе null
+    const content = !(loading || error) ? <View char={char}/> : null; // если loading и error false, то показываем компонент View, иначе null
+
     // из this.state берем свойство char, которое является объектом
     // из объекта char берем свойства name, description, thumbnail, homepage, wiki
     // вместо this.state.char.name можно просто name
@@ -56,23 +77,9 @@ class RandomChar extends Component {
     // в переменную const записываается значение свойства, например name: 'Spider
     return (
       <div className="randomchar">
-        <div className="randomchar__block">
-          <img src={thumbnail} alt="Random character" className="randomchar__img"/>
-          <div className="randomchar__info">
-            <p className="randomchar__name">{name}</p>
-            <p className="randomchar__descr">
-              {description}
-            </p>
-            <div className="randomchar__btns">
-              <a href={homepage} className="button button__main">
-                  <div className="inner">homepage</div>
-              </a>
-              <a href={wiki} className="button button__secondary">
-                  <div className="inner">Wiki</div>
-              </a>
-            </div>
-          </div>
-        </div>
+        {errorMessage}
+        {spinner}
+        {content}
         <div className="randomchar__static">
           <p className="randomchar__title">
             Random character for today!<br/>
@@ -89,6 +96,34 @@ class RandomChar extends Component {
       </div>
     )
   }
+}
+
+// функция для отображения данных персонажа
+const View = ({char}) => {
+  // {} - если нужно выполнить несколько действий внутри функции, например, объявить переменные, сделать вычисления и т.д.
+  // () - если нужно просто вернуть JSX без дополнительных действий
+
+  const {name, description, thumbnail, homepage, wiki} = char; // деструктуризация объекта char
+
+  return (
+    <div className="randomchar__block">
+      <img src={thumbnail} alt="Random character" className="randomchar__img"/>
+      <div className="randomchar__info">
+        <p className="randomchar__name">{name}</p>
+        <p className="randomchar__descr">
+          {description}
+        </p>
+        <div className="randomchar__btns">
+          <a href={homepage} className="button button__main">
+              <div className="inner">homepage</div>
+          </a>
+          <a href={wiki} className="button button__secondary">
+              <div className="inner">Wiki</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default RandomChar; // экспортируем компонент, чтобы использовать его в других файлах

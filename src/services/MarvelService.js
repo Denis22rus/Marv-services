@@ -36,6 +36,7 @@ class MarvelService {
     return this._transformCharacter(res.data.results[0]); // возвращаем трансформированные данные персонажа
     // results[0] - первый элемент массива results, где хранятся данные персонажа
     // res.data - data - свойство объекта res, где хранятся данные с API
+    // пример res: {data: {results: [{name: '...', description: '...', thumbnail: '...', homepage: '...', wiki: '...'}]}}
   }
 
   // функция для трансформации данных персонажа
