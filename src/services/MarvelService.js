@@ -24,7 +24,6 @@ class MarvelService {
     // res - массив с результатами
     const res = await this.getResource(`${this._apiBase}characters?apikey=${this._apiKey}`);
     return res.data.results.map(this._transformCharacter);
-    // что проихсодит в этой строке?
     // res.data.results - массив с персонажами
     // map - метод массива, который создает новый массив, вызывая функцию для каждого элемента массива
     // this._transformCharacter - функция, которая трансформирует данные персонажа (ниже)
@@ -43,6 +42,7 @@ class MarvelService {
   // _ для обозначения приватного метода
   _transformCharacter = (char) => {
     return {
+      id: char.id,
       name: char.name,
       description: char.description ? `${char.description.slice(0, 210)}...` : 'There is no description for this character',
       thumbnail: char.thumbnail.path + '.' + char.thumbnail.extension,
