@@ -51,7 +51,8 @@ class CharInfo extends Component {
       .getCharacter(charId) // вызываем метод getCharacter из MarvelService, передавая id персонажа
       .then(this.onCharLoaded) // когда промис resolve, вызываем метод onCharLoaded
       .catch(this.onError) // если промис reject, вызываем метод onError
-  }
+
+   }
 
   // функция, которая обновляет state компонента
   onCharLoaded = (char) => { // метод класса, который обновляет state компонента
