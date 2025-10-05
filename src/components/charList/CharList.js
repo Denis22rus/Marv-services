@@ -9,35 +9,74 @@ class CharList extends Component {
   // когда сюда попадают данные?
   // когда вызывается метод onCharListLoaded
   state = {
-    charList: [],
-    loading: true,
-    error: false
+    charList: [], // массив персонажей
+    loading: true, // первичная загрузка
+    error: false, // ошибка при загрузке
+    newItemLoading: false, // загрузка новых персонажей при клике на кнопку "load more"
+    offset: 0, // смещение для получения следующей порции персонажей (первые 20 элементов будут пропущены)
+    charEnded: false // флаг, который показывает, что все персонажи загружены
   }
 
-  // новое свойство класса CharList
+  // создает новый экземпляр класса MarvelService и записывает его в свойство marvelService
+  // теперь мы можем использовать методы класса MarvelService через this.marvelService
+  // метод getAllCharacters - асинхронный (возвращает промис) и внутри него используется await
+
   marvelService = new MarvelService();
 
   // * метод жизненного цикла компонента, который вызывается автоматически после первого рендера компонента
   // метод обновляет state
   componentDidMount() {
-    this.marvelService.getAllCharacters()
-    // когда промис resolve, вызываем метод onCharListLoaded
-    // данные в oncharListLoaded попадают через then?
-      .then(this.onCharListLoaded)
-      .catch(this.onError)
+    this.onRequest(this.state.offset); // вызываем метод onRequest, чтобы загрузить первых 9 персонажей
   }
 
-  // * функция, которая обновляет state при успешном получении данных
-  onCharListLoaded = (charList) => {
+  // метод onRequest вызывается в componentDidMount после первого рендера и при клике на кнопку "load more"
+  onRequest = (offset) => {
+    this.onCharListLoading();
+    this.marvelService.getAllCharacters(offset)
+    // в offset сначала ничего не передается, поэтому используется значение по умолчанию из MarvelService.js
+    // когда промис resolve, вызываем метод onCharListLoaded
+    // данные в oncharListLoaded попадают через then
+    .then(this.onCharListLoaded)
+    .catch(this.onError)
+  }
+
+  // * функция, которая обновляет state при начале загрузки новых персонажей
+  onCharListLoading = () => {
     this.setState({
-      // в charList попадает массив с персонажами
-      // синтаксис {charList} - сокращенная запись {charList: charList}, где первый charList - имя свойства, а второй charList - значение свойства (параметр функции)
-      charList,
-      loading: false
+      newItemLoading: true
     })
   }
 
+    // * функция, которая обновляет state при успешном получении данных
+    // * круглые скобки (=> {()}) нужны, чтобы вернуть объект из стрелочной функции Внутрь setState, т.к. новое состояние зависит от предыдущего состояния
+  onCharListLoaded = (newCharList) => {
+    //? 1
+    let ended = false;
+    if (newCharList.length < 9) {
+      ended = true;
+    }
+    // Сначала появляются новые карточки, и сразу после этого кнопка пропадает, если новых карточек было меньше 9.
+
+    // charlist - это деструктуризация, вынимаем charList из объекта state свойство charList и создаем локальную переменную charList
+    // Если написать ({charList, loading}), то получил бы две переменные: charList = state.charList, loading = state.loading.
+    // Если написать ({aaa}), а в state нет свойства aaa, то переменная aaa будет undefined.
+    this.setState(({offset, charList}) => ({
+      //? 2
+      charList: [...charList, ...newCharList],
+      // Если мы запускаем первый раз метод onCharListLoaded, то charList - это пустой массив из state
+      // Когда мы кликаем на кнопку "load more", то в charList уже есть персонажи, и мы добавляем к ним новых персонажей из newCharList
+      // newCharList получает новые данные из метода onReques, из этих новых данных мы создаем новый массив, в который сначала распыляем старый массив charList, а потом добавляем новые данные из newCharList
+      // 1 старые элементы, 2 новые элементы и складываем все это в charList и далее он пойдет на формирование верстки
+      loading: false,
+      newItemLoading: false, // когда новые персонажи загрузились, меняем newItemLoading на false
+      offset: offset + 9, // увеличиваем offset на 9, чтобы при следующем запросе пропустить уже загруженных персонажей (т.к. мы загружаем по 9 персонажей за раз)
+      //? 3
+      charEnded: ended // если новых персонажей меньше 9, то все персонажи загружены и кнопка "load more" больше не нужна
+    }))
+  }
+
   // * функция, которая обновляет state при ошибке
+  // новое состояние не зависит от предыдущего, поэтому передаем объект а не функцию в setState
   onError = () => {
     this.setState({
       error: true,
@@ -83,7 +122,7 @@ class CharList extends Component {
   render() {
 
   // деструктуризация state
-  const {charList, loading, error} = this.state;
+  const {charList, loading, error, offset, newItemLoading, charEnded} = this.state;
 
   // вызываем метод renderItems и передаем в него массив charList из state
   const items = this.renderItems(charList);
@@ -97,7 +136,13 @@ class CharList extends Component {
           {errorMessage}
           {spinner}
           {content}
-          <button className="button button__main button__long">
+          <button
+          // при клике на кнопку вызываем метод onRequest, в который передаем текущее смещение offset из state
+            className="button button__main button__long"
+            disabled={newItemLoading} // Кнопка будет заблокирована, когда идёт загрузка новых персонажей
+            style={{'display': charEnded ? 'none' : 'block'}} // если все персонажи загружены, то кнопка не отображается
+            onClick={() => this.onRequest(offset)} // при клике на кнопку вызываем метод onRequest, в который передаем текущее смещение offset из state
+          >
               <div className="inner">load more</div>
           </button>
       </div>

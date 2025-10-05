@@ -7,6 +7,11 @@ import ErrorBoundary from "../errorBoundary/errorBoundary";
 
 import decoration from '../../resources/img/vision.png';
 
+// Стрелочные функции не создают собственный контекст, поэтому this внутри них будет ссылаться на экземпляр класса CharList
+// Обычные функции создают собственный контекст, поэтому this внутри них будет undefined (если не привязать контекст вручную)
+// Поэтому мы используем стрелочные функции, чтобы this внутри них ссылался на экземпляр класса CharList
+
+
 class App extends Component {
 	state = {
 		// selectedChar будет хранить id персонажа

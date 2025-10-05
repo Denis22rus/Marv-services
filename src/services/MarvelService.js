@@ -3,6 +3,7 @@ class MarvelService {
   // _apiBase - приватное свойство класса (по соглашению, свойства и методы, которые начинаются с _ считаются приватными)
   _apiBase = "https://marvel-server-zeta.vercel.app/";
   _apiKey = "d4eecb0c66dedbfae4eab45d312fc1df";
+  _baseOffset = 0; // смещение для получения следующей порции персонажей-  это количество пропущенных элементов в массиве (например, если смещение 210, то первые 210 элементов будут пропущены)
   getResource = async (url) => {
     let res = await fetch(url); // fetch - встроенная функция для работы с API
     // res - ответ от сервера, res.ok - если запрос успешен (статус 200-299)
@@ -20,9 +21,9 @@ class MarvelService {
   }
 
   // функция для получения всех персонажей
-  getAllCharacters = async () => {
+  getAllCharacters = async (offset = this._baseOffset) => {
     // res - массив с результатами
-    const res = await this.getResource(`${this._apiBase}characters?apikey=${this._apiKey}`);
+    const res = await this.getResource(`${this._apiBase}characters?limit=9&offset=${offset}&apikey=${this._apiKey}`);
     return res.data.results.map(this._transformCharacter);
     // res.data.results - массив с персонажами
     // map - метод массива, который создает новый массив, вызывая функцию для каждого элемента массива
